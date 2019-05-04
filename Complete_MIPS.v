@@ -20,12 +20,11 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Complete_MIPS(CLK, RST, HALT, RESET, r1);//, A_Out, D_Out);
+module Complete_MIPS(CLK, RST, HALT, r1);//, A_Out, D_Out);
   // Will need to be modified to add functionality
   input CLK;
   input RST;
   input HALT;
-  input RESET;
   output [7:0] r1;
 
   wire CS, WE;
@@ -33,9 +32,9 @@ module Complete_MIPS(CLK, RST, HALT, RESET, r1);//, A_Out, D_Out);
   wire [31:0] Mem_Bus;
   wire [31:0] rout;
   
-  assign r1 = rout [7:0];
+  assign r1 = rout[7:0];
 
-  MIPS CPU(CLK, RST, CS, WE, ADDR, Mem_Bus, rout);
+  MIPS CPU(CLK, RST, CS, WE, ADDR, Mem_Bus, rout, HALT);
   Memory MEM(CS, WE, CLK, ADDR, Mem_Bus);
 
 endmodule
@@ -125,12 +124,13 @@ endmodule
 `define f_code instr[5:0]
 `define numshift instr[10:6]
 
-module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r1);
+module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r1, HALT);
   input CLK, RST;
   output reg CS, WE;
   output [6:0] ADDR;
   inout [31:0] Mem_Bus;
   output [31:0] r1;
+  input HALT;
 
   //special instructions (opcode == 000000), values of F code (bits 5-0):
   parameter add = 6'b100000;
@@ -200,8 +200,11 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r1);
     npc = pc; op = jr; reg_or_imm = 0; alu_or_mem = 0; nstate = 3'd0;
     case (state)
       0: begin //fetch
-        npc = pc + 7'd1; CS = 1; nstate = 3'd1;
+        if(HALT) nstate = 3'd0;
+        else begin
+        npc = pc + 7'd1; CS = 1; nstate = 3'd1; 
         fetchDorI = 1;
+        end
       end
       1: begin //decode
         nstate = 3'd2; reg_or_imm = 0; alu_or_mem = 0;
