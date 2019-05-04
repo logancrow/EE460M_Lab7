@@ -47,7 +47,7 @@ module Complete_MIPS(CLK, RST, HALT, SW, B, sseg, an);//, A_Out, D_Out);
   
   displayLogic d0 (CLK,sseg0,sseg1,sseg2,sseg3,an[0],an[1],an[2],an[3],sseg);
 
-  MIPS CPU(CLK, RST, CS, WE, ADDR, Mem_Bus, r2, SW);
+  MIPS CPU(CLK, RST, CS, WE, ADDR, Mem_Bus, r2, SW, HALT);
   Memory MEM(CS, WE, CLK, ADDR, Mem_Bus);
 
   assign num_out = B ? r2[31:16] : r2[15:0];
@@ -142,13 +142,14 @@ endmodule
 `define f_code instr[5:0]
 `define numshift instr[10:6]
 
-module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch);
+module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
   input CLK, RST;
   output reg CS, WE;
   output [6:0] ADDR;
   inout [31:0] Mem_Bus;
   output [31:0] r2;
   input [2:0] switch;
+  input HALT;
 
   //special instructions (opcode == 000000), values of F code (bits 5-0):
   parameter add = 6'b100000;
@@ -229,8 +230,11 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch);
     npc = pc; op = jr; reg_or_imm = 0; alu_or_mem = 0; nstate = 3'd0;
     case (state)
       0: begin //fetch
+        if(HALT) nstate = 3'd1;
+        else begin
         npc = pc + 7'd1; CS = 1; nstate = 3'd1; 
         fetchDorI = 1;
+        end
       end
       1: begin //decode
         nstate = 3'd2; reg_or_imm = 0; alu_or_mem = 0;
