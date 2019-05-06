@@ -20,22 +20,24 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Complete_MIPS(CLK, RST, HALT, r1);//, A_Out, D_Out);
-  // Will need to be modified to add functionality
+module Complete_MIPS(CLK, RST, HALT, r1);
+  
   input CLK;
   input RST;
   input HALT;
   output [7:0] r1;
 
-  wire CS, WE;
+  wire CS, WE, clk8hz;
   wire [6:0] ADDR;
   wire [31:0] Mem_Bus;
   wire [31:0] rout;
   
   assign r1 = rout[7:0];
+  
+  clkdiv8hz c0 (CLK,clk8hz);
 
-  MIPS CPU(CLK, RST, CS, WE, ADDR, Mem_Bus, rout, HALT);
-  Memory MEM(CS, WE, CLK, ADDR, Mem_Bus);
+  MIPS CPU(clk8hz, RST, CS, WE, ADDR, Mem_Bus, rout, HALT);
+  Memory MEM(CS, WE, clk8hz, ADDR, Mem_Bus);
 
 endmodule
 
@@ -58,7 +60,13 @@ module Memory(CS, WE, CLK, ADDR, Mem_Bus);
 
   initial
   begin
-    /* Write your Verilog-Text IO code here */
+    RAM[0] = 32'h30420000;
+    RAM[1] = 32'h20420080;
+    RAM[2] = 32'h30210000;
+    RAM[3] = 32'h20210001;
+    RAM[4] = 32'h00010840;
+    RAM[5] = 32'h1022FFFC;
+    RAM[6] = 32'h1422FFFD;
   end
 
   assign Mem_Bus = ((CS == 1'b0) || (WE == 1'b1)) ? 32'bZ : data_out;
@@ -293,3 +301,25 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r1, HALT);
 
 endmodule
 
+//divides clock to 8hz
+module clkdiv8hz(
+    input clk, 
+    output reg clk_out
+    );
+
+    reg [26:0] COUNT;
+    
+    initial begin
+    COUNT = 0;
+    end
+   
+    always @(posedge clk)
+    begin
+        if (COUNT == 6249999) begin
+        clk_out = ~clk_out;
+        COUNT = 0;
+        end
+       
+    else COUNT = COUNT + 1;
+    end
+endmodule
