@@ -264,7 +264,7 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
     npc = pc; op = jr; reg_or_imm = 0; alu_or_mem = 0; nstate = 3'd0;
     case (state)
       0: begin //fetch
-        if(HALT) nstate = 3'd1;
+        if(HALT) nstate = 3'd0;
         else begin
         npc = pc + 7'd1; CS = 1; nstate = 3'd1; 
         fetchDorI = 1;
