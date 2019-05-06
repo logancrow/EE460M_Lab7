@@ -20,8 +20,8 @@
 //////////////////////////////////////////////////////////////////////////////////
 
 
-module Complete_MIPS(CLK, RST, HALT, SW, B, sseg, an);//, A_Out, D_Out);
-  // Will need to be modified to add functionality
+module Complete_MIPS(CLK, RST, HALT, SW, B, sseg, an);
+  
   input CLK;
   input RST;
   input HALT;
@@ -73,7 +73,41 @@ module Memory(CS, WE, CLK, ADDR, Mem_Bus);
 
   initial
   begin
-    /* Write your Verilog-Text IO code here */
+    RAM[0] = 32'h20C10000;
+    RAM[1] = 32'h31080000;
+    RAM[2] = 32'h3C047000;
+    RAM[3] = 32'h3C057FFF;
+    RAM[4] = 32'h3508000B;
+    RAM[5] = 32'h10C1FFFF;
+    RAM[6] = 32'h20C10000;
+    RAM[7] = 32'h00013840;
+    RAM[8] = 32'h01073820;
+    RAM[9] = 32'h00E00008;
+    RAM[10] = 32'h0BFFFFFA;
+    RAM[11] = 32'h0C00000B;
+    RAM[12] = 32'h0BFFFFF8;
+    RAM[13] = 32'h0C00000B;
+    RAM[14] = 32'h0BFFFFF6;
+    RAM[15] = 32'h0C00000B;
+    RAM[16] = 32'h0BFFFFF4;
+    RAM[17] = 32'h0C00000B;
+    RAM[18] = 32'h0BFFFFF2;
+    RAM[19] = 32'h0C00000B;
+    RAM[20] = 32'h0BFFFFF0;
+    RAM[21] = 32'h0C00000B;
+    RAM[22] = 32'h0BFFFFEE;
+    RAM[23] = 32'h0085102D;
+    RAM[24] = 32'h03E00008;
+    RAM[25] = 32'h3C021000;
+    RAM[26] = 32'h03E00008;
+    RAM[27] = 32'h0045002F;
+    RAM[28] = 32'h03E00008;
+    RAM[29] = 32'h00440030;
+    RAM[30] = 32'h03E00008;
+    RAM[31] = 32'h00A51031;
+    RAM[32] = 32'h03E00008;
+    RAM[33] = 32'h00851032;
+    RAM[34] = 32'h03E00008;
   end
 
   assign Mem_Bus = ((CS == 1'b0) || (WE == 1'b1)) ? 32'bZ : data_out;
