@@ -38,12 +38,12 @@ module Complete_MIPS(CLK, RST, HALT, SW, B, sseg, an);
   wire [15:0] num_out;
   wire [3:0] dig3, dig2, dig1, dig0;
   
-  binconverter b0 (num_out[13:0],dig3,dig2,dig1,dig0);
 
-  hexto7segment h3 (dig3,sseg3);
-  hexto7segment h2 (dig2,sseg2);
-  hexto7segment h1 (dig1,sseg1);
-  hexto7segment h0 (dig0,sseg0);
+
+  hexto7segment h3 (num_out[15:12],sseg3);
+  hexto7segment h2 (num_out[11:8],sseg2);
+  hexto7segment h1 (num_out[7:4],sseg1);
+  hexto7segment h0 (num_out[3:0],sseg0);
   
   displayLogic d0 (CLK,sseg0,sseg1,sseg2,sseg3,an[0],an[1],an[2],an[3],sseg);
 
@@ -79,23 +79,23 @@ module Memory(CS, WE, CLK, ADDR, Mem_Bus);
     RAM[3] = 32'h3C057FFF;
     RAM[4] = 32'h3508000B;
     RAM[5] = 32'h10C1FFFF;
-    RAM[6] = 32'h20C10000;
+    RAM[6] = 32'h20260000;
     RAM[7] = 32'h00013840;
     RAM[8] = 32'h01073820;
     RAM[9] = 32'h00E00008;
-    RAM[10] = 32'h0BFFFFFA;
-    RAM[11] = 32'h0C00000B;
-    RAM[12] = 32'h0BFFFFF8;
-    RAM[13] = 32'h0C00000B;
-    RAM[14] = 32'h0BFFFFF6;
-    RAM[15] = 32'h0C00000B;
-    RAM[16] = 32'h0BFFFFF4;
-    RAM[17] = 32'h0C00000B;
-    RAM[18] = 32'h0BFFFFF2;
-    RAM[19] = 32'h0C00000B;
-    RAM[20] = 32'h0BFFFFF0;
-    RAM[21] = 32'h0C00000B;
-    RAM[22] = 32'h0BFFFFEE;
+    RAM[10] = 32'h08000005;
+    RAM[11] = 32'h0C000017;
+    RAM[12] = 32'h08000005;
+    RAM[13] = 32'h0C000019;
+    RAM[14] = 32'h08000005;
+    RAM[15] = 32'h0C00001B;
+    RAM[16] = 32'h08000005;
+    RAM[17] = 32'h0C00001D;
+    RAM[18] = 32'h08000005;
+    RAM[19] = 32'h0C00001F;
+    RAM[20] = 32'h08000005;
+    RAM[21] = 32'h0C000021;
+    RAM[22] = 32'h08000005;
     RAM[23] = 32'h0085102D;
     RAM[24] = 32'h03E00008;
     RAM[25] = 32'h3C021000;
@@ -148,16 +148,16 @@ module REG(CLK, RegW, DR, SR1, SR2, Reg_In, ReadReg1, ReadReg2, r2, sw);
   initial begin
     ReadReg1 = 0;
     ReadReg2 = 0;
+    for(i = 0;i < 32;i = i+1) REG[i] = 32'h00000000;
   end
-  
-  always@(*) REG[1] = sw;
 
   always @(posedge CLK)
   begin
-
-    if(RegW == 1'b1)
-      REG[DR] <= Reg_In[31:0];
-
+    if(DR != 5'b00001) begin
+        if(RegW == 1'b1) REG[DR] <= Reg_In[31:0];
+        REG[1] = sw | REG[1];
+    end else
+        if(RegW == 1'b1) REG[DR] <= sw | Reg_In[31:0];
     ReadReg1 <= REG[SR1];
     ReadReg2 <= REG[SR2];
   end
@@ -222,22 +222,26 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
   reg [5:0] op, opsave;
   wire [1:0] format;
   reg [31:0] instr, alu_result;
-  reg [6:0] pc, npc;
+  reg [6:0] pc, npc, pcsave;
   wire [31:0] imm_ext, alu_in_A, alu_in_B, reg_in, readreg1, readreg2;
   reg [31:0] alu_result_save;
   reg alu_or_mem, alu_or_mem_save, regw, writing, reg_or_imm, reg_or_imm_save;
   reg fetchDorI;
   wire [4:0] dr;
   reg [2:0] state, nstate;
+  
+  initial begin npc = 7'b0000000;
+                pc = 7'b0000000;
+                end
 
   //combinational
   assign imm_ext = (instr[15] == 1)? {16'hFFFF, instr[15:0]} : {16'h0000, instr[15:0]};//Sign extend immediate field
-  assign dr = ((`opcode == rbit) || (`opcode == rev)) ? instr[25:21] : 
+  assign dr = ((`f_code == rbit) || (`f_code == rev)) ? instr[25:21] : 
                                     ((format == R)? instr[15:11] : 
                                     ((`opcode == jal) ? 5'd31 : instr[20:16])); //Destination Register MUX (MUX1)
   assign alu_in_A = readreg1;
   assign alu_in_B = (reg_or_imm_save)? imm_ext : readreg2; //ALU MUX (MUX2)
-  assign reg_in = (alu_or_mem_save)? Mem_Bus : ((`opcode == jal) ? pc : ((`opcode == lui) ? (instr[15:0] << 16) : alu_result_save)); //Data MUX
+  assign reg_in = (alu_or_mem_save)? Mem_Bus : ((`opcode == jal) ? pcsave : ((`opcode == lui) ? (instr[15:0] << 16) : alu_result_save)); //Data MUX
   assign format = (`opcode == 6'd0)? R : ((`opcode == j || `opcode == jal)? J : I);
   assign Mem_Bus = (writing)? readreg2 : 32'bZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ;
 
@@ -274,7 +278,7 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
         nstate = 3'd2; reg_or_imm = 0; alu_or_mem = 0;
         if (format == J) begin //jump, jal
           npc = instr[6:0];
-          if(`opcode == jal) nstate = 3'd2;
+          if(`opcode == jal) nstate = 3'd3;
             else nstate = 3'd0;
         end
         else if (format == R) //register instructions
@@ -285,6 +289,7 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
             op = add;
             alu_or_mem = 1;
           end
+          if(`opcode == lui) op = add;
           else if ((`opcode == lw)||(`opcode == sw)||(`opcode == addi)) op = add;
           else if ((`opcode == beq)||(`opcode == bne)) begin
             op = sub;
@@ -304,14 +309,14 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
         else if (opsave == sll) alu_result = alu_in_B << `numshift;
         else if (opsave == slt) alu_result = (alu_in_A < alu_in_B)? 32'd1 : 32'd0;
         else if (opsave == xor1) alu_result = alu_in_A ^ alu_in_B;
-        else if(opsave == rbit) begin for(i = 0;i < 32;i=i+1) alu_result[i] = alu_in_B[31-i]; end
+        else if(opsave == rbit) begin alu_result[0] = alu_in_B[31]; alu_result[1] = alu_in_B[30]; alu_result[2] = alu_in_B[29]; alu_result[3] = alu_in_B[28]; alu_result[4] = alu_in_B[27]; alu_result[5] = alu_in_B[26]; alu_result[6] = alu_in_B[25];alu_result[7] = alu_in_B[24];alu_result[8] = alu_in_B[23];alu_result[9] = alu_in_B[22];alu_result[10] = alu_in_B[21];alu_result[11] = alu_in_B[20];alu_result[12] = alu_in_B[19];alu_result[13] = alu_in_B[18];alu_result[14] = alu_in_B[17];alu_result[15] = alu_in_B[16];alu_result[16] = alu_in_B[15];alu_result[17] = alu_in_B[14];alu_result[18] = alu_in_B[13];alu_result[19] = alu_in_B[12];alu_result[20] = alu_in_B[11];alu_result[21] = alu_in_B[10];alu_result[22] = alu_in_B[9];alu_result[23] = alu_in_B[8];alu_result[24] = alu_in_B[7];alu_result[25] = alu_in_B[6];alu_result[26] = alu_in_B[5];alu_result[27] = alu_in_B[4];alu_result[28] = alu_in_B[3];alu_result[29] = alu_in_B[2];alu_result[30] = alu_in_B[1];alu_result[31] = alu_in_B[0];end
         else if(opsave == rev) alu_result = {alu_in_B[7:0],alu_in_B[15:8],alu_in_B[23:16],alu_in_B[31:24]};
         else if(opsave == add8) begin alu_result[31:24] = alu_in_A[31:24] + alu_in_B[31:24]; 
                                       alu_result[23:16] = alu_in_A[23:16] + alu_in_B[23:16];
                                       alu_result[15:8] = alu_in_A[15:8] + alu_in_B[15:8];
                                       alu_result[7:0] = alu_in_A[7:0] + alu_in_B[7:0]; end
-        else if(opsave == sadd) alu_result = ((alu_in_A + alu_in_B) > 32'hFFFFFFFF) ? 32'hFFFFFFFF : (alu_in_A + alu_in_B);
-        else if(opsave == ssub) alu_result = ((alu_in_A - alu_in_B) < 32'h00000000) ? 32'h00000000 : (alu_in_A - alu_in_B);                                                 
+        else if(opsave == sadd) alu_result = ((alu_in_A + alu_in_B) > 32'h7FFFFFFF) ? 32'h7FFFFFFF : (alu_in_A + alu_in_B);
+        else if(opsave == ssub) alu_result = ((alu_in_A - alu_in_B) >= 32'h80000000) ? 32'h00000000 : (alu_in_A - alu_in_B);                                                 
         if (((alu_in_A == alu_in_B)&&(`opcode == beq)) || ((alu_in_A != alu_in_B)&&(`opcode == bne))) begin
           npc = pc + imm_ext[6:0];
           nstate = 3'd0;
@@ -351,6 +356,7 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
     end
     else begin
       state <= nstate;
+      pcsave <= pc;
       pc <= npc;
     end
 
@@ -366,18 +372,6 @@ module MIPS (CLK, RST, CS, WE, ADDR, Mem_Bus, r2, switch, HALT);
 
 endmodule
 
-//converts binary number to 4 seperate digits
-module binconverter(
-    input [13:0] in,
-    output [3:0] out3, 
-    inout [3:0] out2, out1, out0
-    );
-    
-    assign out0 = in%10;
-    assign out1 = ((in%100) - out0)/10;
-    assign out2 = ((in%1000) - (out1*10) - out0)/100;
-    assign out3 = (in - (out2*100) - (out1*10) - out0)/1000;    
-endmodule
 
 
 //send a hex value, returns seven segment
