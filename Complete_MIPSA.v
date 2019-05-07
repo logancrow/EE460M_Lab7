@@ -65,8 +65,9 @@ module Memory(CS, WE, CLK, ADDR, Mem_Bus);
     RAM[2] = 32'h30210000;
     RAM[3] = 32'h20210001;
     RAM[4] = 32'h00010840;
-    RAM[5] = 32'h1022FFFC;
-    RAM[6] = 32'h1422FFFD;
+    RAM[5] = 32'h1422FFFE;
+    RAM[6] = 32'h000109C2;
+    RAM[7] = 32'h0BFFFFFC;
   end
 
   assign Mem_Bus = ((CS == 1'b0) || (WE == 1'b1)) ? 32'bZ : data_out;
@@ -315,7 +316,7 @@ module clkdiv8hz(
    
     always @(posedge clk)
     begin
-        if (COUNT == 6249999) begin
+        if (COUNT == 499999) begin
         clk_out = ~clk_out;
         COUNT = 0;
         end
